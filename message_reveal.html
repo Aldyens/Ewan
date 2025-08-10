@@ -1,0 +1,129 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Reveal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .typing {
+            overflow: hidden;
+            white-space: pre-wrap;
+            border-right: 2px solid #fff;
+            animation: blink 0.7s step-end infinite;
+        }
+        @keyframes blink {
+            50% { border-color: transparent; }
+        }
+        .fade-in {
+            opacity: 0;
+            animation: fadeIn 1s ease-in forwards;
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-gray-900 to-gray-800 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-gray-800 text-white p-8 rounded-lg shadow-lg max-w-2xl w-full">
+        <h1 class="text-2xl font-bold mb-4 text-center">A Message for You...</h1>
+        <div id="message" class="text-lg font-mono"></div>
+    </div>
+    <script>
+        const messages = [
+            "May gusto lang sana akong sabihin. pero if pagod ka eh wag mo muna basahin",
+            "Una sa lahat, super thankful ako sayo dahil ikaw lang yung pinakaunang taong nakapagpush o natulungan ako kung pano ko I express talaga yung sarili ko. Ikaw yung pinakaunang tao na napagsabihan ko ng problem genuinely.",
+            "Salamat din dahil sa mayroon akong naging kasama dis buong summer nakakausap, nakakakwentuhan. Kaya naging bearable iyon, kasi nga diba, problems shared tend to be halved.",
+            "Hmmmmm… ewan koba, di ako ganto dati. Alam kong cringe tong pinagsasabi ko pero naglakas loob na ako. Sabihin ko na: naging crush na kita dati pa nung kalagitnaan ng praktis ng mass demo at sobrang saya ko nun na naging close tayung lahat. Diko dapat aaminin eh kasi sinabi mo ata nun na may pagka lithromantic ka at ayaw ko naman na dina pansinin tsaka parang pinupush mo ako nun sa iba like kila avi or yung si jana, well alam ko naman na joke siguru yun pero...",
+            "Kapag magkakasama kami ng mga tropa ko, tinatanong nila kung sino ba yung kausap ko nayan, at nakangiti ako. Kasi kapag kasama ko sila, minsan lang ako humawak ng cp, eh. Ganun na din si ate bat daw ganun ako.",
+            "Nung sinabi mong naging crush mo si Paclarin pero hindi na kasi masama ugali or so, napangiti ako dun. Pero nung sinabi mong naging crush mo si Prinz (and I think hanggang ngayon)… eh shet, medj masakit hahahahha.",
+            "If man dika aware why, kasi una there is this thing na diko maipaliwanag. Yung ambait mo tas yung iba yung sympathy talaga eh tas yung honest na remarks mo kapag super appreciate ko pero may iba pa eh... ah basta diko maexplain.",
+            "Kaya palagi kitang inaaya maglaro ket natatalo or pede ko namang ayain mga tropa ko pero iba parin yung saya eh. Dimo na iniisip if matatalo or mananalo, yung usapan eh di mapapantayan.",
+            "Kilala mo namn na ako na duwag pagdating sa ganto. Pero either way, no pressure to ha. Pede mo nalang ipagkibit balikat. I’m not expecting to be reciprocated din naman kaya chill ang heheeheh.",
+            "If want mo, promise dina ako mangungulit. Pasensiya sa lahat-lahat. Tsaka kelangan kolang kasi mailabas to.",
+            "Tuwing nagiging cold ka, napapa-overthink ako. Kaya nung tinanong mo nung sinabi kong matutulog ako, kung bakit di ako natulog kasi di ako makatulog kaiisip dun.",
+            "Tatanungin ko sana if may problema ba or kung ano, pero ayaw ko naman na isipin mon makulit ako, or immature, or mababa emotional intelligence.",
+            "By the way, kaya ko pala to sinasabi is… ewan koba, ngayun lang ako nakaramdam ng ganto. Yung gusto ko ilabas lahat kasi nahihirapan na ako matulog.",
+            "A basta wala wala, diko na alam. I’m at loss, diko maexplain. Buttt this is the fiirrsst time na nag ganto ako. Diko alam gagawin kooooo for real.",
+            "Diko na dapat sasabihin etong mga ito eh… pero heto tangina hahahahaha.",
+            "After moto mabasa, I think supposedly magiging awkward na lahat. But if that’s what you felt, then understandable. Sorry if may nasira dahil sa mga sinasabi kong ito you can choose to ignore me namn and I won’t harbor any hard feelings.",
+            "Sinimulan koto eh hahahaahahha. But honestly, maraming maraming salamat you have built me up. Taena, grabing development to.",
+            "Not that tinataboy kita or what ha, it’s just kelangan kolang masabi lahat ng to, ok? pero if may problema ka tas wala kang masabihan open lang din namn ako kapag.",
+            "Thankyouuuuuuuuuu.",
+            "Hayssss… nakakahiya tangina hahahahhaahh"
+        ];
+
+        const messageElement = document.getElementById('message');
+        let currentMessageIndex = 0;
+        let currentCharIndex = 0;
+        let currentElement = null;
+
+        function typeMessage() {
+            if (currentMessageIndex >= messages.length) return;
+
+            if (!currentElement) {
+                currentElement = document.createElement('p');
+                currentElement.className = 'mb-4 opacity-0';
+                messageElement.appendChild(currentElement);
+                setTimeout(() => currentElement.classList.add('fade-in'), 10);
+            }
+
+            const message = messages[currentMessageIndex];
+            if (currentCharIndex < message.length) {
+                currentElement.textContent = message.slice(0, currentCharIndex + 1);
+                currentElement.className = 'mb-4 typing fade-in';
+                currentCharIndex++;
+                setTimeout(typeMessage, 50); // Typing speed
+            } else {
+                currentElement.className = 'mb-4 fade-in';
+                currentMessageIndex++;
+                currentCharIndex = 0;
+                currentElement = null;
+                setTimeout(typeMessage, 2000); // Pause between messages
+            }
+        }
+
+        // Start typing effect automatically
+        window.onload = typeMessage;
+    </script>
+</body>
+</html>
